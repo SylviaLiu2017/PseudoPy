@@ -1,19 +1,19 @@
 
 # coding: utf-8
 
-# In[99]:
+# In[216]:
 
 import numpy as np
 import pandas as pd
 
 
-# In[100]:
+# In[217]:
 
 df = pd.read_csv('./datasets/data_n20_N200.csv',sep=',',header=None)
 df.head()
 
 
-# In[101]:
+# In[218]:
 
 data_arr = np.array(df.loc[1:,1:],dtype=int)
 #data_arr = np.concatenate((data_arr,data_arr))
@@ -25,7 +25,7 @@ n =data_arr.shape[1]
 N =data_arr.shape[0]
 
 
-# In[102]:
+# In[219]:
 
 def generate_V(centre):
     centre_arr = np.array(centre)
@@ -46,7 +46,7 @@ def generate_V(centre):
     return V_order
 
 
-# In[103]:
+# In[220]:
 
 def rank(ls):
     arr = np.array(ls)
@@ -56,7 +56,7 @@ def rank(ls):
     return ranks
 
 
-# In[104]:
+# In[221]:
 
 def pseudo_likelihood(data,n_samples,alpha):
     data_arr = np.array(data)
@@ -64,12 +64,13 @@ def pseudo_likelihood(data,n_samples,alpha):
     n = data_arr.shape[1]
     rho_samples = np.zeros((n_samples,n),dtype=int)
     data_rank = rank(np.sum(data_arr,axis=0))
-    for i in range(n_samples):
+    for i in range(n_samples): #should be easily parallelized?
         if((i+1)%100==0):
             print(i+1 ,"/", n_samples, "iterations")
         support = np.arange(0,n)
         rho_tmp = np.zeros(n, dtype = int)
         V_centre = generate_V(data_rank)
+        #V_centre = np.arange(1,n+1)
         for j in range(n):
             i_curr = np.where(V_centre ==(j+1))
             ####calculating the distance from the data to the possible value
@@ -87,7 +88,7 @@ def pseudo_likelihood(data,n_samples,alpha):
     return rho_samples
 
 
-# In[114]:
+# In[222]:
 
 n_samples = 3000
 import time
@@ -98,24 +99,24 @@ end = time.time()
 print(np.round(end - start,3),"seconds elapsed")
 
 
-# In[115]:
+# In[223]:
+
+rho_samples
+
+
+# In[224]:
 
 import matplotlib
 import matplotlib.pyplot as plt
 get_ipython().magic('matplotlib inline')
 
 
-# In[116]:
+# In[225]:
 
-rho_samples
-
-
-# In[173]:
-
-heatMat=(np.array(list(map(lambda x: np.sum(rho_samples == x,axis=0), (np.arange(1,1+n)))))/n_samples).T[::-1]
+heatMat=(np.array(list(map(lambda x: np.sum(rho_samples == x,axis=0), (np.arange(1,1+n)))))/n_samples)[::-1]
 
 
-# In[180]:
+# In[226]:
 
 def heatmap(data, row_labels, col_labels, ax=None,
             cbar_kw={}, cbarlabel="", **kwargs):
@@ -178,18 +179,68 @@ def heatmap(data, row_labels, col_labels, ax=None,
     return im, cbar
 
 
-# In[181]:
+# In[227]:
 
 fig, ax = plt.subplots()
-
 im, cbar = heatmap(heatMat, reversed(np.arange(1,n+1)), (np.arange(1,n+1)), ax=ax,
                    cmap="coolwarm", cbarlabel= "probability")
 
 
-# In[141]:
+# In[228]:
 
 #fig, ax = plt.subplots()
 #im = ax.imshow(heatMat)
+
+
+# In[229]:
+
+df_potatoes = pd.read_csv('./datasets/potato.csv',sep=',',header=None)
+df_potatoes.head()
+
+
+# In[230]:
+
+potato_arr = np.array(df_potatoes.loc[1:,1:],dtype=int)
+
+
+# In[231]:
+
+potato_arr
+
+
+# In[232]:
+
+n_samples = 3000
+start = time.time()
+rho_samples=pseudo_likelihood(potato_arr,n_samples,16.)
+end = time.time()
+#print(end-start)
+print(np.round(end - start,3),"seconds elapsed")
+
+
+# In[233]:
+
+rho_samples.mean(axis=0)
+
+
+# In[234]:
+
+potato_true_ranking = np.array([11, 17, 19, 16, 10, 15,  5, 20,  3,  4,  9,  1,  2,  6, 18,  7,  8,
+       14, 12, 13])
+potato_ordering = np.argsort(potato_true_ranking)
+rho_samples_ordered = rho_samples[:,potato_ordering]
+
+
+# In[237]:
+
+heatMat2=(np.array(list(map(lambda x: np.sum(rho_samples[:,potato_ordering] == x,axis=0), np.arange(1,n+1))))/n_samples)[::-1]
+
+
+# In[238]:
+
+fig, ax = plt.subplots()
+im, cbar = heatmap(heatMat2, reversed(np.arange(1,n+1)), (np.arange(1,n+1)), ax=ax,
+                   cmap="coolwarm", cbarlabel= "probability")
 
 
 # In[ ]:
